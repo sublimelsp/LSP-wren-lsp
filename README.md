@@ -4,7 +4,6 @@ This package provides language support for [Wren](https://wren.io/) via [wren-ls
 
 ## Features
 
-- Syntax highlighting
 - Diagnostics (syntax + semantic checks)
 - Code completion
 - Hover information
@@ -82,27 +81,12 @@ Access settings via: `Preferences > Package Settings > LSP-wren-lsp > Settings`
    - Right-click context menu
    - Keyboard shortcuts (see LSP package documentation)
 
-## Building
-
-To create a `.sublime-package` file for distribution:
-
-```bash
-# From the editors/sublime directory
-zip -r WrenLSP.sublime-package . -x "*.git*" -x "*.DS_Store" -x "README.md"
-```
-
-Install via: `Preferences > Browse Packages...` (place in `Installed Packages/` folder)
-
 ## Troubleshooting
 
 **LSP not starting?**
 - Check the Sublime Text console (`View > Show Console`) for errors
 - Ensure `wren-lsp` is in your PATH or set the correct path in settings
 - Try disabling auto-download if behind a proxy
-
-**Syntax highlighting issues?**
-- Ensure no other Wren syntax packages are conflicting
-- Check the scope in status bar (should show `source.wren`)
 
 ## License
 
