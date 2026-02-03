@@ -1,0 +1,182 @@
+"""
+LSP client registration for Wren Language Server.
+"""
+
+from __future__ import annotations
+
+import os
+import shutil
+import json
+import urllib.request
+from pathlib import Path
+
+import sublime
+import sublime_plugin
+
+from LSP.plugin import AbstractPlugin, register_plugin, unregister_plugin
+
+REPO = "jossephus/wren-lsp"
+REQUEST_TIMEOUT = 30
+SETTINGS_FILE = "LSP-wren-lsp.sublime-settings"
+
+
+def get_auto_download_setting() -> bool:
+    """Read auto_download setting from LSP-wren-lsp settings."""
+    settings = sublime.load_settings(SETTINGS_FILE)
+    return settings.get("settings", {}).get("auto_download", True)
+
+
+def get_binary_name() -> str:
+    return "wren-lsp.exe" if sublime.platform() == "windows" else "wren-lsp"
+
+
+def get_storage_path() -> Path:
+    return Path(sublime.cache_path()) / str(__package__)
+
+
+def get_binary_path() -> Path:
+    return get_storage_path() / get_binary_name()
+
+
+def get_installed_version() -> str | None:
+    version_file = get_storage_path() / "version.txt"
+    try:
+        if version_file.exists():
+            return version_file.read_text().strip()
+    except Exception as e:
+        print(f"WrenLSP: failed reading version.txt: {e}")
+    return None
+
+
+def save_installed_version(version: str) -> None:
+    version_file = get_storage_path() / "version.txt"
+    version_file.parent.mkdir(parents=True, exist_ok=True)
+    version_file.write_text(version)
+
+
+def get_platform_asset() -> str | None:
+    platform_map = {
+        ("linux", "x64"): "wren-lsp-linux-x86_64",
+        ("linux", "arm64"): "wren-lsp-linux-aarch64",
+        ("osx", "x64"): "wren-lsp-macos-x86_64",
+        ("osx", "arm64"): "wren-lsp-macos-aarch64",
+        ("windows", "x64"): "wren-lsp-windows-x86_64.exe",
+        ("windows", "arm64"): "wren-lsp-windows-aarch64.exe",
+    }
+    return platform_map.get((sublime.platform(), sublime.arch()))
+
+
+def fetch_latest_release() -> dict:
+    url = f"https://api.github.com/repos/{REPO}/releases/latest"
+    req = urllib.request.Request(url)
+    req.add_header("User-Agent", "wren-lsp-sublime")
+    req.add_header("Accept", "application/vnd.github.v3+json")
+    with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT) as response:
+        return json.loads(response.read().decode('utf-8'))
+
+
+def download_binary(download_url: str, binary_path: Path) -> None:
+    temp_path = binary_path.with_suffix('.tmp')
+    req = urllib.request.Request(download_url)
+    req.add_header("User-Agent", "wren-lsp-sublime")
+    with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT) as response:
+        temp_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(temp_path, 'wb') as f:
+            while chunk := response.read(8192):
+                f.write(chunk)
+    if binary_path.exists():
+        binary_path.unlink()
+    temp_path.rename(binary_path)
+    if sublime.platform() != 'windows':
+        binary_path.chmod(0o755)
+
+
+class WrenLsp(AbstractPlugin):
+
+    @classmethod
+    def name(cls) -> str:
+        return "wren-lsp"
+
+    @classmethod
+    def basedir(cls) -> str:
+        return os.path.dirname(__file__)
+
+    @classmethod
+    def server_version(cls) -> str:
+        return get_installed_version() or "unknown"
+
+    @classmethod
+    def current_server_version(cls) -> str | None:
+        return get_installed_version()
+
+    @classmethod
+    def needs_update_or_installation(cls) -> bool:
+        if get_binary_path().exists():
+            return False
+        if shutil.which("wren-lsp"):
+            return False
+        return get_auto_download_setting()
+
+    @classmethod
+    def install_or_update(cls) -> None:
+        asset_name = get_platform_asset()
+        if not asset_name:
+            raise Exception(f"Unsupported platform: {sublime.platform()}-{sublime.arch()}")
+
+        release = fetch_latest_release()
+        version = release.get('tag_name') or "unknown"
+        if not release.get('assets'):
+            raise Exception("Latest release has no assets")
+
+        download_url = None
+        for asset in release['assets']:
+            if asset['name'] == asset_name:
+                download_url = asset['browser_download_url']
+                break
+
+        if not download_url:
+            raise Exception(f"No binary for platform: {sublime.platform()}-{sublime.arch()}")
+
+        download_binary(download_url, get_binary_path())
+        save_installed_version(version)
+
+    @classmethod
+    def additional_variables(cls) -> dict | None:
+        binary_path = get_binary_path()
+        if binary_path.exists():
+            return {"binary_path": str(binary_path)}
+        wren_lsp_in_path = shutil.which("wren-lsp")
+        if wren_lsp_in_path:
+            return {"binary_path": wren_lsp_in_path}
+        return {"binary_path": str(binary_path)}
+
+
+class WrenLspUpdateCommand(sublime_plugin.ApplicationCommand):
+
+    def run(self) -> None:
+        sublime.set_timeout_async(self._update, 0)
+
+    def _update(self) -> None:
+        try:
+            sublime.status_message("WrenLSP: Checking for updates...")
+            installed = get_installed_version()
+            release = fetch_latest_release()
+            latest = release.get('tag_name')
+
+            if installed == latest:
+                sublime.message_dialog(f"WrenLSP: Already up to date ({latest})")
+                return
+
+            WrenLsp.install_or_update()
+            msg = f"WrenLSP: Updated from {installed or 'unknown'} to {latest}. Restart LSP to apply."
+            sublime.message_dialog(msg)
+        except Exception as e:
+            sublime.error_message(f"WrenLSP: Failed to update: {e}")
+
+
+def plugin_loaded() -> None:
+    register_plugin(WrenLsp)
+
+
+def plugin_unloaded() -> None:
+    unregister_plugin(WrenLsp)

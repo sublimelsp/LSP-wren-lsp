@@ -1,0 +1,6 @@
+[
+    {
+        "caption": "LSP-wren-lsp: Update Language Server",
+        "command": "wren_lsp_update"
+    }
+]

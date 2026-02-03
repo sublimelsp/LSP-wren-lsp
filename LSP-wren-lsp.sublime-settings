@@ -1,0 +1,12 @@
+{
+    // Path to the wren-lsp executable
+    // If not provided, the plugin will use the auto-downloaded binary
+    "command": ["${binary_path}"],
+    // Files this server should handle
+    "selector": "source.wren",
+    // Plugin-specific settings
+    "settings": {
+        // Automatically download the latest wren-lsp binary from GitHub releases
+        "auto_download": true
+    }
+}
