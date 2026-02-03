@@ -8,7 +8,6 @@ import os
 import shutil
 import json
 import urllib.request
-import threading
 from pathlib import Path
 
 import sublime
@@ -148,31 +147,24 @@ class WrenLsp(AbstractPlugin):
 class WrenLspUpdateCommand(sublime_plugin.ApplicationCommand):
 
     def run(self) -> None:
-        thread = threading.Thread(target=self._update, daemon=True)
-        thread.start()
+        sublime.set_timeout_async(self._update, 0)
 
     def _update(self) -> None:
         try:
-            sublime.set_timeout(
-                lambda: sublime.status_message("WrenLSP: Checking for updates..."), 0
-            )
+            sublime.status_message("WrenLSP: Checking for updates...")
             installed = get_installed_version()
             release = fetch_latest_release()
             latest = release.get('tag_name')
 
             if installed == latest:
-                sublime.set_timeout(
-                    lambda: sublime.message_dialog(f"WrenLSP: Already up to date ({latest})"), 0
-                )
+                sublime.message_dialog(f"WrenLSP: Already up to date ({latest})")
                 return
 
             WrenLsp.install_or_update()
             msg = f"WrenLSP: Updated from {installed or 'unknown'} to {latest}. Restart LSP to apply."
-            sublime.set_timeout(lambda: sublime.message_dialog(msg), 0)
+            sublime.message_dialog(msg)
         except Exception as e:
-            sublime.set_timeout(
-                lambda: sublime.error_message(f"WrenLSP: Failed to update: {e}"), 0
-            )
+            sublime.error_message(f"WrenLSP: Failed to update: {e}")
 
 
 def plugin_loaded() -> None:

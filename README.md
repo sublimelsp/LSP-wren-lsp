@@ -67,8 +67,9 @@ Access settings via: `Preferences > Package Settings > LSP-wren-lsp > Settings`
 ```json
 {
     "command": ["/usr/local/bin/wren-lsp"],
-    "enabled": true,
-    "auto_download": true
+    "settings": {
+        "auto_download": true
+    }
 }
 ```
 
