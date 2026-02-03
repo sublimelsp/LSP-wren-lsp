@@ -2,6 +2,8 @@
 LSP client registration for Wren Language Server.
 """
 
+from __future__ import annotations
+
 import os
 import shutil
 import json
@@ -13,7 +15,6 @@ import sublime
 import sublime_plugin
 
 from LSP.plugin import AbstractPlugin, register_plugin, unregister_plugin
-from LSP.plugin.core.typing import Optional
 
 REPO = "jossephus/wren-lsp"
 REQUEST_TIMEOUT = 30
@@ -24,14 +25,14 @@ def get_binary_name() -> str:
 
 
 def get_storage_path() -> Path:
-    return Path(sublime.cache_path()) / "WrenLSP"
+    return Path(sublime.cache_path()) / str(__package__)
 
 
 def get_binary_path() -> Path:
     return get_storage_path() / get_binary_name()
 
 
-def get_installed_version() -> Optional[str]:
+def get_installed_version() -> str | None:
     version_file = get_storage_path() / "version.txt"
     try:
         if version_file.exists():
@@ -47,7 +48,7 @@ def save_installed_version(version: str) -> None:
     version_file.write_text(version)
 
 
-def get_platform_asset() -> Optional[str]:
+def get_platform_asset() -> str | None:
     platform_map = {
         ("linux", "x64"): "wren-lsp-linux-x86_64",
         ("linux", "arm64"): "wren-lsp-linux-aarch64",
@@ -99,7 +100,7 @@ class WrenLsp(AbstractPlugin):
         return get_installed_version() or "unknown"
 
     @classmethod
-    def current_server_version(cls) -> Optional[str]:
+    def current_server_version(cls) -> str | None:
         return get_installed_version()
 
     @classmethod
@@ -134,7 +135,7 @@ class WrenLsp(AbstractPlugin):
         save_installed_version(version)
 
     @classmethod
-    def additional_variables(cls) -> Optional[dict]:
+    def additional_variables(cls) -> dict | None:
         binary_path = get_binary_path()
         if binary_path.exists():
             return {"binary_path": str(binary_path)}
