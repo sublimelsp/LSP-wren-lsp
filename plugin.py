@@ -17,6 +17,13 @@ from LSP.plugin import AbstractPlugin, register_plugin, unregister_plugin
 
 REPO = "jossephus/wren-lsp"
 REQUEST_TIMEOUT = 30
+SETTINGS_FILE = "LSP-wren-lsp.sublime-settings"
+
+
+def get_auto_download_setting() -> bool:
+    """Read auto_download setting from LSP-wren-lsp settings."""
+    settings = sublime.load_settings(SETTINGS_FILE)
+    return settings.get("settings", {}).get("auto_download", True)
 
 
 def get_binary_name() -> str:
@@ -108,7 +115,7 @@ class WrenLsp(AbstractPlugin):
             return False
         if shutil.which("wren-lsp"):
             return False
-        return True
+        return get_auto_download_setting()
 
     @classmethod
     def install_or_update(cls) -> None:

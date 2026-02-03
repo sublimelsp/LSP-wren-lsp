@@ -54,25 +54,6 @@ The extension will attempt to auto-download the appropriate `wren-lsp` binary fo
 
 Access settings via: `Preferences > Package Settings > LSP-wren-lsp > Settings`
 
-**Available settings:**
-
-| Setting | Description | Default |
-|---------|-------------|---------|
-| `command` | Path to wren-lsp executable | `["wren-lsp"]` |
-| `enabled` | Enable/disable the language server | `true` |
-| `auto_download` | Auto-download LSP binary from GitHub | `true` |
-
-**Example custom configuration:**
-
-```json
-{
-    "command": ["/usr/local/bin/wren-lsp"],
-    "settings": {
-        "auto_download": true
-    }
-}
-```
-
 ## Usage
 
 1. Open a `.wren` file
