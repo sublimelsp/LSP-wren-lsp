@@ -24,7 +24,7 @@ This package provides language support for [Wren](https://wren.io/) via [wren-ls
 
 - [Sublime Text 4](https://www.sublimetext.com/) (build 4000+)
 - [LSP](https://packagecontrol.io/packages/LSP) package (install via Package Control)
-- [wren-lsp](https://github.com/jossephus/wren-lsp) binary
+- [Wren](https://packagecontrol.io/packages/Wren) syntax package
 
 ## Installation
 
@@ -44,7 +44,7 @@ This package provides language support for [Wren](https://wren.io/) via [wren-ls
 
 ### LSP Binary
 
-The extension will attempt to auto-download the appropriate `wren-lsp` binary for your platform from GitHub releases. Alternatively, you can:
+The extension will auto-download the appropriate `wren-lsp` binary for your platform from GitHub releases if it is not already available. Alternatively, you can:
 
 1. Download manually from [releases](https://github.com/jossephus/wren-lsp/releases)
 2. Place it in your PATH, or
