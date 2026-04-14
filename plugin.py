@@ -4,15 +4,14 @@ LSP client registration for Wren Language Server.
 
 from __future__ import annotations
 
+import json
 import os
 import shutil
-import json
 import urllib.request
 from pathlib import Path
 
 import sublime
 import sublime_plugin
-
 from LSP.plugin import AbstractPlugin, register_plugin, unregister_plugin
 
 REPO = "jossephus/wren-lsp"
