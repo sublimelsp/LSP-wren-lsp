@@ -12,7 +12,7 @@ from pathlib import Path
 
 import sublime
 import sublime_plugin
-from LSP.plugin import AbstractPlugin, register_plugin, unregister_plugin
+from LSP.plugin import LspPlugin, OnPreStartContext
 
 REPO = "jossephus/wren-lsp"
 REQUEST_TIMEOUT = 30
@@ -90,11 +90,13 @@ def download_binary(download_url: str, binary_path: Path) -> None:
         binary_path.chmod(0o755)
 
 
-class WrenLsp(AbstractPlugin):
+class WrenLsp(LspPlugin):
 
     @classmethod
-    def name(cls) -> str:
-        return "wren-lsp"
+    def on_pre_start_async(cls, context: OnPreStartContext) -> None:
+        if cls.needs_update_or_installation():
+            cls.install_or_update()
+        context.variables["binary_path"] = cls.binary_path()
 
     @classmethod
     def basedir(cls) -> str:
@@ -140,14 +142,14 @@ class WrenLsp(AbstractPlugin):
         save_installed_version(version)
 
     @classmethod
-    def additional_variables(cls) -> dict | None:
+    def binary_path(cls) -> str:
         binary_path = get_binary_path()
         if binary_path.exists():
-            return {"binary_path": str(binary_path)}
+            return str(binary_path)
         wren_lsp_in_path = shutil.which("wren-lsp")
         if wren_lsp_in_path:
-            return {"binary_path": wren_lsp_in_path}
-        return {"binary_path": str(binary_path)}
+            return wren_lsp_in_path
+        return str(binary_path)
 
 
 class WrenLspUpdateCommand(sublime_plugin.ApplicationCommand):
@@ -174,8 +176,8 @@ class WrenLspUpdateCommand(sublime_plugin.ApplicationCommand):
 
 
 def plugin_loaded() -> None:
-    register_plugin(WrenLsp)
+    WrenLsp.register()
 
 
 def plugin_unloaded() -> None:
-    unregister_plugin(WrenLsp)
+    WrenLsp.unregister()

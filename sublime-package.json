@@ -43,7 +43,7 @@
               "properties": {
                 "LSP": {
                   "properties": {
-                    "wren-lsp": {
+                    "LSP-wren-lsp": {
                       "$ref": "sublime://settings/LSP-wren-lsp#/definitions/PluginConfig"
                     }
                   }
