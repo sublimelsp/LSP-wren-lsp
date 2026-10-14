@@ -12,45 +12,14 @@ from pathlib import Path
 
 import sublime
 import sublime_plugin
-from LSP.plugin import LspPlugin, OnPreStartContext
+from LSP.plugin import ClientConfig, LspPlugin, OnPreStartContext
 
 REPO = "jossephus/wren-lsp"
 REQUEST_TIMEOUT = 30
-SETTINGS_FILE = "LSP-wren-lsp.sublime-settings"
-
-
-def get_auto_download_setting() -> bool:
-    """Read auto_download setting from LSP-wren-lsp settings."""
-    settings = sublime.load_settings(SETTINGS_FILE)
-    return settings.get("settings", {}).get("auto_download", True)
 
 
 def get_binary_name() -> str:
     return "wren-lsp.exe" if sublime.platform() == "windows" else "wren-lsp"
-
-
-def get_storage_path() -> Path:
-    return Path(sublime.cache_path()) / str(__package__)
-
-
-def get_binary_path() -> Path:
-    return get_storage_path() / get_binary_name()
-
-
-def get_installed_version() -> str | None:
-    version_file = get_storage_path() / "version.txt"
-    try:
-        if version_file.exists():
-            return version_file.read_text().strip()
-    except Exception as e:
-        print(f"WrenLSP: failed reading version.txt: {e}")
-    return None
-
-
-def save_installed_version(version: str) -> None:
-    version_file = get_storage_path() / "version.txt"
-    version_file.parent.mkdir(parents=True, exist_ok=True)
-    version_file.write_text(version)
 
 
 def get_platform_asset() -> str | None:
@@ -94,7 +63,7 @@ class WrenLsp(LspPlugin):
 
     @classmethod
     def on_pre_start_async(cls, context: OnPreStartContext) -> None:
-        if cls.needs_update_or_installation():
+        if cls.needs_update_or_installation(context.configuration):
             cls.install_or_update()
         context.variables["binary_path"] = cls.binary_path()
 
@@ -103,20 +72,44 @@ class WrenLsp(LspPlugin):
         return os.path.dirname(__file__)
 
     @classmethod
+    def storage_path(cls) -> Path:
+        return cls.plugin_storage_path
+
+    @classmethod
+    def downloaded_binary_path(cls) -> Path:
+        return cls.storage_path() / get_binary_name()
+
+    @classmethod
+    def installed_version(cls) -> str | None:
+        version_file = cls.storage_path() / "version.txt"
+        try:
+            if version_file.exists():
+                return version_file.read_text().strip()
+        except Exception as e:
+            print(f"WrenLSP: failed reading version.txt: {e}")
+        return None
+
+    @classmethod
+    def save_installed_version(cls, version: str) -> None:
+        version_file = cls.storage_path() / "version.txt"
+        version_file.parent.mkdir(parents=True, exist_ok=True)
+        version_file.write_text(version)
+
+    @classmethod
     def server_version(cls) -> str:
-        return get_installed_version() or "unknown"
+        return cls.installed_version() or "unknown"
 
     @classmethod
     def current_server_version(cls) -> str | None:
-        return get_installed_version()
+        return cls.installed_version()
 
     @classmethod
-    def needs_update_or_installation(cls) -> bool:
-        if get_binary_path().exists():
+    def needs_update_or_installation(cls, configuration: ClientConfig) -> bool:
+        if cls.downloaded_binary_path().exists():
             return False
         if shutil.which("wren-lsp"):
             return False
-        return get_auto_download_setting()
+        return bool(configuration.settings.get("auto_download", True))
 
     @classmethod
     def install_or_update(cls) -> None:
@@ -138,12 +131,12 @@ class WrenLsp(LspPlugin):
         if not download_url:
             raise Exception(f"No binary for platform: {sublime.platform()}-{sublime.arch()}")
 
-        download_binary(download_url, get_binary_path())
-        save_installed_version(version)
+        download_binary(download_url, cls.downloaded_binary_path())
+        cls.save_installed_version(version)
 
     @classmethod
     def binary_path(cls) -> str:
-        binary_path = get_binary_path()
+        binary_path = cls.downloaded_binary_path()
         if binary_path.exists():
             return str(binary_path)
         wren_lsp_in_path = shutil.which("wren-lsp")
@@ -160,7 +153,7 @@ class WrenLspUpdateCommand(sublime_plugin.ApplicationCommand):
     def _update(self) -> None:
         try:
             sublime.status_message("WrenLSP: Checking for updates...")
-            installed = get_installed_version()
+            installed = WrenLsp.installed_version()
             release = fetch_latest_release()
             latest = release.get('tag_name')
 
