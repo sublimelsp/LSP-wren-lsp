@@ -5,7 +5,6 @@ LSP client registration for Wren Language Server.
 from __future__ import annotations
 
 import json
-import os
 import shutil
 import urllib.request
 from pathlib import Path
@@ -68,10 +67,6 @@ class WrenLsp(LspPlugin):
         context.variables["binary_path"] = cls.binary_path()
 
     @classmethod
-    def basedir(cls) -> str:
-        return os.path.dirname(__file__)
-
-    @classmethod
     def storage_path(cls) -> Path:
         return cls.plugin_storage_path
 
@@ -94,14 +89,6 @@ class WrenLsp(LspPlugin):
         version_file = cls.storage_path() / "version.txt"
         version_file.parent.mkdir(parents=True, exist_ok=True)
         version_file.write_text(version)
-
-    @classmethod
-    def server_version(cls) -> str:
-        return cls.installed_version() or "unknown"
-
-    @classmethod
-    def current_server_version(cls) -> str | None:
-        return cls.installed_version()
 
     @classmethod
     def needs_update_or_installation(cls, configuration: ClientConfig) -> bool:
